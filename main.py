@@ -103,6 +103,30 @@ def sentence_groups(segments, total):
     if not clean: raise RuntimeError("Speech could not be detected in one of the tracks.")
     return clean
 
+
+def merge_to_count(groups, target_count):
+    """Merge neighboring Whisper fragments until the transcript has target_count groups.
+    The closest neighboring time boundaries are merged first, which usually joins
+    fragments that Whisper split inside one spoken sentence.
+    """
+    groups = [dict(g) for g in groups]
+    while len(groups) > target_count:
+        if len(groups) < 2:
+            break
+        gaps = [
+            max(0.0, groups[i + 1]["start"] - groups[i]["end"])
+            for i in range(len(groups) - 1)
+        ]
+        idx = min(range(len(gaps)), key=gaps.__getitem__)
+        left, right = groups[idx], groups[idx + 1]
+        groups[idx] = {
+            "start": left["start"],
+            "end": right["end"],
+            "text": (left["text"].rstrip() + " " + right["text"].lstrip()).strip()
+        }
+        del groups[idx + 1]
+    return groups
+
 def make_blocks(eng, hin, video_len, hindi_len):
     if len(eng) != len(hin):
         raise RuntimeError(f"Sentence counts differ: English {len(eng)}, Hindi {len(hin)}. Check that both tracks have the same sentence structure and clear sentence pauses.")
@@ -147,7 +171,18 @@ def worker(job, video, hindi, folder):
         es = sentence_groups(transcribe(video, folder, "en", "en"), vd)
         update(job, progress=42, message="Transcribing Hindi audio...")
         hs = sentence_groups(transcribe(hindi, folder, "hi", "hi"), hd)
-        update(job, progress=65, message="Matching sentences by order...")
+
+        # Whisper may split one Hindi sentence into several short segments.
+        # Normalize both sides to the smaller detected count by joining the
+        # closest neighboring boundaries; sentence order is preserved.
+        if len(es) != len(hs):
+            target = min(len(es), len(hs))
+            if len(es) > target:
+                es = merge_to_count(es, target)
+            if len(hs) > target:
+                hs = merge_to_count(hs, target)
+
+        update(job, progress=65, message="Matching sentence groups by order...")
         blocks = make_blocks(es, hs, vd, hd)
         update(job, progress=75, message="Adjusting video timing and adding Hindi audio...")
         out = folder / "audiosync_hindi_output.mp4"

@@ -63,17 +63,27 @@ def transcribe(media, folder, language, prefix):
                 file=(chunk.name, f.read()), model=MODEL, language=language,
                 response_format="verbose_json", timestamp_granularities=["segment"])
         for s in (getattr(result, "segments", []) or []):
-            start = float(s.start)+offset
-            end = float(s.end)+offset
-            text = str(s.text).strip()
-            if text and end > start: output.append({"start": start, "end": end, "text": text})
+            # Groq SDK may return segment entries as dictionaries or objects.
+            if isinstance(s, dict):
+                raw_start = s.get("start", 0)
+                raw_end = s.get("end", 0)
+                raw_text = s.get("text", "")
+            else:
+                raw_start = getattr(s, "start", 0)
+                raw_end = getattr(s, "end", 0)
+                raw_text = getattr(s, "text", "")
+            start = float(raw_start) + offset
+            end = float(raw_end) + offset
+            text = str(raw_text).strip()
+            if text and end > start:
+                output.append({"start": start, "end": end, "text": text})
         offset += length
         idx += 1
     return sorted(output, key=lambda x: x["start"])
 
 def sentence_groups(segments, total):
     groups, current = [], None
-    ending = re.compile(r'[.!?।॥]+[\\s"”’)]*$')
+    ending = re.compile(r'[.!?।॥]+[\s"”’)]*$')
     for seg in segments:
         if current is None: current = {"start": seg["start"], "end": seg["end"], "text": seg["text"]}
         else:

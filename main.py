@@ -157,7 +157,7 @@ def build_blocks(english, hindi, video_duration, hindi_duration):
         raise RuntimeError("Could not create video timing blocks.")
     return result
 
-def render_sequential(job, video, hindi_audio, output, blocks, folder):
+def render_sequential(job, video, hindi_audio, output, blocks, folder, hindi_duration):
     """
     Render one short video segment at a time, then concatenate the small
     temporary files. This avoids a huge multi-branch FFmpeg filter graph.
@@ -193,7 +193,7 @@ def render_sequential(job, video, hindi_audio, output, blocks, folder):
              "-c", "copy", str(joined)], timeout=900)
     run_cmd([FFMPEG, "-y", "-i", str(joined), "-i", str(hindi_audio),
              "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy",
-             "-c:a", "aac", "-b:a", "128k", "-shortest",
+             "-c:a", "aac", "-b:a", "128k", "-t", f"{hindi_duration:.3f}",
              "-movflags", "+faststart", str(output)], timeout=900)
 
 def worker(job, video, hindi, folder):
@@ -213,9 +213,18 @@ def worker(job, video, hindi, folder):
 
         update(job, progress=62, message=f"Matched {len(english)} sentence groups by order.")
         blocks = build_blocks(english, hindi_groups, vd, hd)
+
+        # Scale all mapped blocks proportionally to span the complete Hindi track.
+        mapped_duration = sum(target for _, _, target in blocks)
+        if mapped_duration <= 0:
+            raise RuntimeError("The calculated video timeline has zero duration.")
+        timeline_scale = hd / mapped_duration
+        blocks = [(start, end, target * timeline_scale)
+                  for start, end, target in blocks]
+
         update(job, progress=75, message="Starting low-memory video rendering...")
         output = folder / "AudioSync-Hindi-Video.mp4"
-        render_sequential(job, video, hindi, output, blocks, folder)
+        render_sequential(job, video, hindi, output, blocks, folder, hd)
         update(job, status="completed", progress=100,
                message="Your Hindi video is ready.", output=str(output),
                sentence_count=len(english))

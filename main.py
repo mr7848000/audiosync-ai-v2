@@ -31,7 +31,7 @@ def cmd(args, timeout=7200):
 
 def duration(path):
     p = subprocess.run([FFMPEG, "-i", str(path)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    m = re.search(r"Duration:\\s*(\\d+):(\\d+):(\\d+(?:\\.\\d+)?)", p.stderr)
+    m = re.search(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", p.stderr)
     if not m: raise RuntimeError("Could not read media duration: " + path.name)
     h, minute, sec = m.groups()
     return int(h)*3600 + int(minute)*60 + float(sec)

@@ -1,1 +1,17 @@
-index
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827"><title>AudioSync AI</title>
+<link rel="stylesheet" href="/static/style.css"></head><body>
+<main class="shell">
+<header class="top"><div class="logo">AS</div><div><h1>AudioSync <span>AI</span></h1><p>Match your Hindi narration to your original video.</p></div></header>
+<section class="card"><div class="heading"><div><h2>Create your Hindi video</h2><p>Upload the original video and complete Hindi dubbed audio.</p></div><b class="badge">BETA</b></div>
+<form id="form">
+<label class="upload" for="video"><b class="icon">▣</b><strong>English original video</strong><small>MP4, MOV, MKV or WEBM</small><span id="vname">Choose a video file</span><input id="video" type="file" accept="video/*" required></label>
+<label class="upload" for="audio"><b class="icon">♫</b><strong>Hindi dubbed audio</strong><small>MP3, WAV, M4A, AAC or OGG</small><span id="aname">Choose Hindi audio</span><input id="audio" type="file" accept="audio/*" required></label>
+<div class="notice"><b>Before you start</b><ul><li>Both tracks must contain the same sentences in the same order.</li><li>Upload the complete Hindi narration.</li><li>The original video audio will be removed completely.</li></ul></div>
+<button id="submit" type="submit">Generate Hindi Video <span>→</span></button></form>
+<div id="progress" class="panel hidden"><div class="row"><b id="title">Processing...</b><span id="percent">0%</span></div><div class="track"><div id="bar"></div></div><p id="message">Uploading...</p></div>
+<div id="result" class="result hidden"><div class="check">✓</div><div><h3>Your video is ready!</h3><p id="info"></p><a id="download" class="download">Download MP4</a></div></div>
+<div id="error" class="error hidden"></div></section><footer>AudioSync AI · Processing may take several minutes.</footer></main>
+<script src="/static/script.js"></script></body></html>
